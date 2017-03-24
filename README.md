@@ -12,13 +12,23 @@ Installation and Usage
 After you've downloaded the SCT file from this package, it must be registered using the following syntax:
 
 ```sh
-regsvr32 Tracy.LogParser.Scriptlet.sct
+%SystemRoot%\Syswow64\regsvr32 Tracy.LogParser.Scriptlet.sct
 ```
 
-To use it, run Log Parser with parameters that tell it to use this COM Plug-In, for example:
+Note the path to regsvr32 executable used, it is needed to work correctly on 64bit Windows. Regsvr32 expects
+a valid path to the SCT file, so either run the command from the directory where you've placed the file or use
+the full path.
+
+To use the Plug-In, run Log Parser with parameters that tell it to use this COM Plug-In, for example:
 
 ```sh
 logparser "SELECT * FROM 'C:\foo\exception.log' WHERE TO_DATE(DateTime) = SYSTEM_DATE()" -i:COM -iProgID:Tracy.LogParser.Scriptlet
+```
+
+To unregister the Plug-In, use this command:
+
+```sh
+%SystemRoot%\Syswow64\regsvr32 /u Tracy.LogParser.Scriptlet.sct
 ```
 
 About
