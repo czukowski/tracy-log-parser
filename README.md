@@ -56,6 +56,11 @@ This COM Plug-In is heavily based on tutorials by [Robert McMurray][robmcm] on M
 It would not have been possible to create this Plug-In without these. Also, last time I was writing
 anything in VB was well more than 10 years ago, so there are bound to be some gotchas with this work.
 
+License
+-------
+
+This work is released under the MIT License. See LICENSE.md for details.
+
 
  [logparser]: https://technet.microsoft.com/en-us/scriptcenter/dd919274.aspx
  [nette]: https://nette.org/en/
