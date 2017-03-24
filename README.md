@@ -12,7 +12,7 @@ Installation and Usage
 After you've downloaded the SCT file from this package, it must be registered using the following syntax:
 
 ```sh
-regsvr32 Tracy.LogParser.Scriptlet
+regsvr32 Tracy.LogParser.Scriptlet.sct
 ```
 
 To use it, run Log Parser with parameters that tell it to use this COM Plug-In, for example:
