@@ -1,0 +1,263 @@
+<SCRIPTLET>
+  <registration
+    Description="Tracy Debugger Log Parser Scriptlet"
+    Progid="Tracy.LogParser.Scriptlet"
+    Classid="{63e6c16b-98de-41d7-9cc1-b6ea85fc79d3}"
+    Version="1.00"
+    Remotable="False" />
+  <comment>
+  EXAMPLE: logparser "SELECT * FROM 'C:\foo\exception.log'" -i:COM -iProgID:Tracy.LogParser.Scriptlet
+  </comment>
+  <implements id="Automation" type="Automation">
+    <method name="OpenInput">
+      <parameter name="strFileName"/>
+    </method>
+    <method name="GetFieldCount" />
+    <method name="GetFieldName">
+      <parameter name="intFieldIndex"/>
+    </method>
+    <method name="GetFieldType">
+      <parameter name="intFieldIndex"/>
+    </method>
+    <method name="ReadRecord" />
+    <method name="GetValue">
+      <parameter name="intFieldIndex"/>
+    </method>
+    <method name="CloseInput">
+      <parameter name="blnAbort"/>
+    </method>
+  </implements>
+  <SCRIPT LANGUAGE="VBScript">
+
+Option Explicit
+
+' Define the column separator in the log file.
+Const strSeparator = "|"
+
+' Define whether the first row contains column names.
+Const blnHeaderRow = True
+
+' Define the field type constants.
+Const TYPE_INTEGER   = 1
+Const TYPE_REAL      = 2
+Const TYPE_STRING    = 3
+Const TYPE_TIMESTAMP = 4
+Const TYPE_NULL      = 5
+
+' Declare variables.
+Dim objFSO, objFile, blnFileOpen
+Dim arrFieldNames, arrFieldTypes
+Dim arrCurrentRecord
+
+' Indicate that no file has been opened.
+blnFileOpen = False
+
+' --------------------------------------------------------------------------------
+' Open the input session.
+' --------------------------------------------------------------------------------
+
+Public Function OpenInput(strFileName)
+    Dim tmpCount
+    ' Test for a file name.
+    If Len(strFileName)=0 Then
+        ' Return a status that the parameter is incorrect.
+        OpenInput = 87
+        blnFileOpen = False
+    Else
+        ' Test for single-quotes.
+        If Left(strFileName,1)="'" And Right(strFileName,1)="'" Then
+            ' Strip the single-quotes from the file name.
+            strFileName = Mid(strFileName,2,Len(strFileName)-2)
+        End If
+        ' Open the file system object.
+        Set objFSO = CreateObject("Scripting.Filesystemobject")
+        ' Verify that the specified file exists.
+        If objFSO.FileExists(strFileName) Then
+            ' Open the specified file.
+            Set objFile = objFSO.OpenTextFile(strFileName,1,False)
+            ' Set a flag to indicate that the specified file is open.
+            blnFileOpen = true
+            ' Retrieve an initial record.
+            Call ReadRecord()
+            ' Redimension the array of field names.
+            ReDim arrFieldNames(UBound(arrCurrentRecord))
+            ' Loop through the record fields.
+            For tmpCount = 0 To (UBound(arrFieldNames))
+                ' Test for a header row.
+                If blnHeaderRow = True Then
+                    arrFieldNames(tmpCount) = arrCurrentRecord(tmpCount)
+                Else
+                    arrFieldNames(tmpCount) = "Field" & (tmpCount+1)
+                End If
+            Next
+            ' Test for a header row.
+            If blnHeaderRow = True Then
+                ' Retrieve a second record.
+                Call ReadRecord()
+            End If
+            ' Redimension the array of field types.
+            ReDim arrFieldTypes(UBound(arrCurrentRecord))
+            ' Loop through the record fields.
+            For tmpCount = 0 To (UBound(arrFieldTypes))
+                ' Test if the current field contains a date.
+                If IsDate(arrCurrentRecord(tmpCount)) Then
+                    ' Specify the field type as a timestamp.
+                    arrFieldTypes(tmpCount) = TYPE_TIMESTAMP
+                ' Test if the current field contains a number.
+                ElseIf IsNumeric(arrCurrentRecord(tmpCount)) Then
+                    ' Test if the current field contains a decimal.
+                    If InStr(arrCurrentRecord(tmpCount),".") Then
+                        ' Specify the field type as a real number.
+                        arrFieldTypes(tmpCount) = TYPE_REAL
+                    Else
+                        ' Specify the field type as an integer.
+                        arrFieldTypes(tmpCount) = TYPE_INTEGER
+                    End If
+                ' Test if the current field is null.
+                ElseIf IsNull(arrCurrentRecord(tmpCount)) Then
+                    ' Specify the field type as NULL.
+                    arrFieldTypes(tmpCount) = TYPE_NULL
+                ' Test if the current field is empty.
+                ElseIf IsEmpty(arrCurrentRecord(tmpCount)) Then
+                    ' Specify the field type as NULL.
+                    arrFieldTypes(tmpCount) = TYPE_NULL
+                ' Otherwise, assume it's a string.
+                Else
+                    ' Specify the field type as a string.
+                    arrFieldTypes(tmpCount) = TYPE_STRING
+                End If
+            Next
+            ' Temporarily close the log file.
+            objFile.Close
+            ' Re-open the specified file.
+            Set objFile = objFSO.OpenTextFile(strFileName,1,False)
+            ' Test for a header row.
+            If blnHeaderRow = True Then
+                ' Skip the first row.
+                objFile.SkipLine
+            End If
+            ' Return success status.
+            OpenInput = 0
+        Else
+            ' Return a file not found status.
+            OpenInput = 2
+        End If
+    End If
+End Function
+
+' --------------------------------------------------------------------------------
+' Close the input session.
+' --------------------------------------------------------------------------------
+
+Public Function CloseInput(blnAbort)
+    ' Free the objects.
+    Set objFile = Nothing
+    Set objFSO = Nothing
+    ' Set a flag to indicate that the specified file is closed.
+    blnFileOpen = False
+End Function
+
+' --------------------------------------------------------------------------------
+' Return the count of fields.
+' --------------------------------------------------------------------------------
+
+Public Function GetFieldCount()
+    ' Specify the default value.
+    GetFieldCount = 0
+    ' Test if a file is open.
+    If (blnFileOpen = True) Then
+        ' Test for the number of field names.
+        If UBound(arrFieldNames) > 0 Then
+            ' Return the count of fields.
+            GetFieldCount = UBound(arrFieldNames) + 1
+        End If
+    End If
+End Function
+
+' --------------------------------------------------------------------------------
+' Return the specified field's name.
+' --------------------------------------------------------------------------------
+
+Public Function GetFieldName(intFieldIndex)
+    ' Specify the default value.
+    GetFieldName = Null
+    ' Test if a file is open.
+    If (blnFileOpen = True) Then
+        ' Test if the index is valid.
+        If intFieldIndex<=UBound(arrFieldNames) Then
+            ' Return the specified field name.
+            GetFieldName = arrFieldNames(intFieldIndex)
+        End If
+    End If
+End Function
+
+' --------------------------------------------------------------------------------
+' Return the specified field's type.
+' --------------------------------------------------------------------------------
+
+Public Function GetFieldType(intFieldIndex)
+    ' Specify the default value.
+    GetFieldType = Null
+    ' Test if a file is open.
+    If (blnFileOpen = True) Then
+        ' Test if the index is valid.
+        If intFieldIndex<=UBound(arrFieldTypes) Then
+            ' Return the specified field type.
+            GetFieldType = arrFieldTypes(intFieldIndex)
+        End If
+    End If
+End Function
+
+' --------------------------------------------------------------------------------
+' Return the specified field's value.
+' --------------------------------------------------------------------------------
+
+Public Function GetValue(intFieldIndex)
+    ' Specify the default value.
+    GetValue = Null
+    ' Test if a file is open.
+    If (blnFileOpen = True) Then
+        ' Test if the index is valid.
+        If intFieldIndex<=UBound(arrCurrentRecord) Then
+            ' Return the specified field value based on the field type.
+            Select Case arrFieldTypes(intFieldIndex)
+                Case TYPE_INTEGER:
+                    GetValue = CInt(arrCurrentRecord(intFieldIndex))
+                Case TYPE_REAL:
+                    GetValue = CDbl(arrCurrentRecord(intFieldIndex))
+                Case TYPE_STRING:
+                    GetValue = CStr(arrCurrentRecord(intFieldIndex))
+                Case TYPE_TIMESTAMP:
+                    GetValue = CDate(arrCurrentRecord(intFieldIndex))
+                Case Else
+                    GetValue = Null
+            End Select
+        End If
+    End If
+End Function
+  
+' --------------------------------------------------------------------------------
+' Read the next record, and return true or false if there is more data.
+' --------------------------------------------------------------------------------
+
+Public Function ReadRecord()
+    ' Specify the default value.
+    ReadRecord = False
+    ' Test if a file is open.
+    If (blnFileOpen = True) Then
+        ' Test if there is more data.
+        If objFile.AtEndOfStream Then
+            ' Flag the log file as having no more data.
+            ReadRecord = False
+        Else
+            ' Read the current record.
+            arrCurrentRecord = Split(objFile.ReadLine,strSeparator)
+            ' Flag the log file as having more data to process.
+            ReadRecord = True
+        End If
+    End If
+End Function
+
+  </SCRIPT>
+
+</SCRIPTLET>
