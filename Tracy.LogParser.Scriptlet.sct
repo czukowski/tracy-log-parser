@@ -35,7 +35,7 @@ Option Explicit
 Const strSeparator = "|"
 
 ' Define whether the first row contains column names.
-Const blnHeaderRow = True
+Const blnHeaderRow = False
 
 ' Define the field type constants.
 Const TYPE_INTEGER   = 1
@@ -48,9 +48,14 @@ Const TYPE_NULL      = 5
 Dim objFSO, objFile, blnFileOpen
 Dim arrFieldNames, arrFieldTypes
 Dim arrCurrentRecord
+Dim objDateTimeRe
 
 ' Indicate that no file has been opened.
 blnFileOpen = False
+
+' Initialize RegExp for matching date and time.
+Set objDateTimeRe = CreateObject("VBScript.RegExp")
+objDateTimeRe.Pattern = "\[(\d{4}-\d{2}-\d{2} \d{2}-\d{2}-\d{2})\]\s+"
 
 ' --------------------------------------------------------------------------------
 ' Open the input session.
@@ -250,9 +255,45 @@ Public Function ReadRecord()
             ' Flag the log file as having no more data.
             ReadRecord = False
         Else
+            Dim strLine
+            Dim objDateTimeMatch, strDateTime, datDateTime
+            Dim intExceptionFilePos, strExceptionFile
+            Dim intRequestPos, strRequest
+            Dim intMessagePos, strMessage
             ' Read the current record.
-            arrCurrentRecord = Split(objFile.ReadLine,strSeparator)
-            ' Flag the log file as having more data to process.
+            strLine = objFile.ReadLine
+            ' Match Date and Time.
+            Set objDateTimeMatch = objDateTimeRe.Execute(strLine)
+            If objDateTimeMatch.Count > 0 And objDateTimeMatch(0).Submatches.Count > 0 Then
+                strDateTime = objDateTimeMatch(0).Submatches(0)
+                datDateTime = DateSerial(CInt(Mid(strDateTime, 1, 4)), CInt(Mid(strDateTime, 6, 2)), CInt(Mid(strDateTime, 9, 4)))
+                datDateTime = DateAdd("h", CInt(Mid(strDateTime, 12, 2)), datDateTime)
+                datDateTime = DateAdd("n", CInt(Mid(strDateTime, 15, 2)), datDateTime)
+                datDateTime = DateAdd("s", CInt(Mid(strDateTime, 18, 2)), datDateTime)
+                intMessagePos = objDateTimeMatch(0).Length
+            Else
+                intMessagePos = 0
+            End If
+            ' Match Exception File.
+            intExceptionFilePos = InStrRev(strLine, "  @@  ")
+            If intExceptionFilePos > 0 Then
+                strExceptionFile = Mid(strLine, intExceptionFilePos + 6)
+            Else
+                intExceptionFilePos = -1
+            End If
+            ' Match Request.
+            intRequestPos = InStrRev(strLine, "  @  ")
+            If intRequestPos > 0 Then
+                strRequest = Mid(strLine, intRequestPos + 5, intExceptionFilePos - intRequestPos - 5)
+            End If
+            ' Match Message.
+            strMessage = Trim(Mid(strLine, intMessagePos, intRequestPos - intMessagePos))
+            ' Create output array.
+            arrCurrentRecord = Array(datDateTime, strMessage, strRequest)
+            If Not IsNull(strExceptionFile) Then
+                ReDim Preserve arrCurrentRecord(UBound(arrCurrentRecord) + 1)
+                arrCurrentRecord(UBound(arrCurrentRecord)) = strExceptionFile
+            End If
             ReadRecord = True
         End If
     End If
