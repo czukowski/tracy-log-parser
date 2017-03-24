@@ -37,7 +37,7 @@ DateTime Message  @  Request [ @@  ExceptionFile]
  * `ExceptionFile`, only found in exception logs, states a file name, in which exception details, such
     as stack trace, can be found. It is separated by ` @@ ` from the previous part.
 
-This COM Plug-In is heavily based on tutorials by [robmcm] on Microsoft blog, especially:
+This COM Plug-In is heavily based on tutorials by [Robert McMurray][robmcm] on Microsoft blog, especially:
 
  * [Advanced Log Parser Charts Part 4 – Adding Custom Input Formats][tutorial-part-4]
  * [Advanced Log Parser Part 6 – Creating a Simple Custom Input Format Plug-In][tutorial-part-6]
