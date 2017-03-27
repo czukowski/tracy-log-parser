@@ -31,9 +31,6 @@
 
 Option Explicit
 
-' Define the column separator in the log file.
-Const strSeparator = "|"
-
 ' Define whether the first row contains column names.
 Const blnHeaderRow = False
 
@@ -266,7 +263,7 @@ Public Function ReadRecord()
             Set objDateTimeMatch = objDateTimeRe.Execute(strLine)
             If objDateTimeMatch.Count > 0 And objDateTimeMatch(0).Submatches.Count > 0 Then
                 strDateTime = objDateTimeMatch(0).Submatches(0)
-                datDateTime = DateSerial(CInt(Mid(strDateTime, 1, 4)), CInt(Mid(strDateTime, 6, 2)), CInt(Mid(strDateTime, 9, 4)))
+                datDateTime = DateSerial(CInt(Mid(strDateTime, 1, 4)), CInt(Mid(strDateTime, 6, 2)), CInt(Mid(strDateTime, 9, 2)))
                 datDateTime = DateAdd("h", CInt(Mid(strDateTime, 12, 2)), datDateTime)
                 datDateTime = DateAdd("n", CInt(Mid(strDateTime, 15, 2)), datDateTime)
                 datDateTime = DateAdd("s", CInt(Mid(strDateTime, 18, 2)), datDateTime)
